@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามยอดการรายงาน IOR รายบุคคล</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js and Annotation Plugin for Goal Lines -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
+
+    <!-- Header -->
+    <header class="bg-teal-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/20 p-2.5 rounded-lg backdrop-blur-sm">
+                    <i class="fa-solid fa-shield-heart text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">ระบบติดตามและวิเคราะห์ยอดรายงาน IOR</h1>
+                    <p class="text-xs text-teal-100">แผนกรังสีวิทยา | ร่วมสร้างวัฒนธรรมความปลอดภัยเพื่อผู้ป่วย</p>
+                </div>
+            </div>
+            
+            <!-- แสดงข้อมูลปี เดือน และอัปเดตล่าสุดภาพรวม -->
+            <div class="flex items-center space-x-4">
+                <div class="bg-teal-800/80 px-3.5 py-1.5 rounded-lg border border-teal-600 text-right">
+                    <p class="text-[11px] text-teal-200 uppercase font-medium">รอบข้อมูลประจำ</p>
+                    <p id="headerPeriod" class="text-sm font-bold text-white">ตุลาคม 2569</p>
+                </div>
+                <div class="bg-teal-800/80 px-3.5 py-1.5 rounded-lg border border-teal-600 text-right hidden sm:block">
+                    <p class="text-[11px] text-teal-200 uppercase font-medium">อัปเดตล่าสุดภาพรวม</p>
+                    <p id="headerLastUpdate" class="text-sm font-bold text-white">-</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="addNewUserPrompt()" class="bg-teal-600 hover:bg-teal-500 border border-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
+                        <i class="fa-solid fa-user-plus mr-1.5"></i> เพิ่ม
+                    </button>
+                    <button onclick="exportToCSV()" class="bg-white text-teal-800 hover:bg-teal-50 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
+                        <i class="fa-solid fa-file-export mr-1.5"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+
+        <!-- Motivational & Target Banner -->
+        <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-700 text-white p-5 rounded-2xl shadow-md mb-6 border border-teal-600/50 relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 text-white/10 text-9xl font-bold pointer-events-none">
+                <i class="fa-solid fa-hands-holding-heart"></i>
+            </div>
+            <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="space-y-1.5 max-w-3xl">
+                    <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-amber-950 shadow-sm mb-1">
+                        <i class="fa-solid fa-bullhorn mr-1.5"></i> ร่วมสร้างวัฒนธรรมความปลอดภัย (Safety Culture)
+                    </div>
+                    <h2 class="text-lg md:text-xl font-bold text-white flex items-center">
+                        เชิญชวนพี่น้องชาวรังสีฯ ร่วมส่งรายงานความเสี่ยง IOR Self-Report เชิงรุก!
+                    </h2>
+                    <p class="text-xs md:text-sm text-teal-100 leading-relaxed">
+                        "รายงานเพื่อป้องกัน ไม่จับผิด เน้นแก้ไขระบบและพัฒนาคุณภาพงานบริการร่วมกันทุกวัน เพื่อความปลอดภัยสูงสุดของผู้ป่วยและพวกเราทุกคน"
+                    </p>
+                </div>
+                
+                <!-- Target Indicators Badge -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full md:w-auto shrink-0">
+                    <div class="bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/20 text-center flex-1 sm:flex-none">
+                        <p class="text-[10px] text-teal-200 font-medium">เป้าหมาย รพ.</p>
+                        <p class="text-sm font-bold text-amber-300">≥ 2 เรื่อง<span class="text-[10px] text-white/80 font-normal">/คน/เดือน</span></p>
+                    </div>
+                    <div class="bg-emerald-500/30 backdrop-blur-md px-4 py-2 rounded-xl border border-emerald-300/40 text-center flex-1 sm:flex-none shadow-sm">
+                        <p class="text-[10px] text-emerald-100 font-medium">เป้าหมายแผนกรังสีฯ</p>
+                        <p class="text-sm font-bold text-emerald-200">≥ 5 เรื่อง<span class="text-[10px] text-white/80 font-normal">/คน/เดือน</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase">ยอดรายงานรวมทั้งหมด</p>
+                    <h3 id="statTotalCount" class="text-2xl font-bold text-teal-700 mt-1">0</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">รายการรวมสะสม</p>
+                </div>
+                <div class="w-11 h-11 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase">บุคลากรทั้งหมด</p>
+                    <h3 id="statTotalStaff" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">เจ้าหน้าที่ในแผนก</p>
+                </div>
+                <div class="w-11 h-11 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase">ผ่านเกณฑ์แล้ว (≥ 5)</p>
+                    <h3 id="statPassedStaff" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">บรรลุเป้าหมายแผนก</p>
+                </div>
+                <div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase">อัตราผ่านเกณฑ์ (%)</p>
+                    <h3 id="statPassRate" class="text-2xl font-bold text-indigo-600 mt-1">0%</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">ความสำเร็จของแผนก</p>
+                </div>
+                <div class="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Chart Section (Full Width with Goal Lines) -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <h2 class="text-base font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-ranking-star text-amber-500 mr-2"></i> กราฟอันดับผู้รายงานมากไปน้อย (Ranking Chart)
+                </h2>
+                <!-- Chart Goal Lines Legend -->
+                <div class="flex items-center space-x-4 text-xs font-medium">
+                    <span class="flex items-center text-sky-600">
+                        <span class="w-3 h-0.5 bg-sky-500 border-dashed border-b mr-1.5"></span> เป้าหมาย รพ. (2)
+                    </span>
+                    <span class="flex items-center text-rose-600">
+                        <span class="w-3 h-0.5 bg-rose-500 border-dashed border-b mr-1.5"></span> เป้าหมาย แผนก (5)
+                    </span>
+                </div>
+            </div>
+            <div id="chartContainer" class="w-full" style="height: 500px;">
+                <canvas id="rankingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Table Controls Bar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="ค้นหาชื่อ..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+                
+                <select id="filterMonth" onchange="onFilterChange()" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                    <option value="ตุลาคม">เดือน: ตุลาคม</option>
+                    <option value="พฤศจิกายน">เดือน: พฤศจิกายน</option>
+                    <option value="ธันวาคม">เดือน: ธันวาคม</option>
+                    <option value="มกราคม">เดือน: มกราคม</option>
+                    <option value="กุมภาพันธ์">เดือน: กุมภาพันธ์</option>
+                    <option value="มีนาคม">เดือน: มีนาคม</option>
+                </select>
+
+                <select id="filterYear" onchange="onFilterChange()" class="px-3 py-1.5 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                    <option value="2569">ปี พ.ศ.: 2569</option>
+                    <option value="2568">ปี พ.ศ.: 2568</option>
+                    <option value="2567">ปี พ.ศ.: 2567</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 transition flex items-center">
+                    <i class="fa-solid fa-file-import mr-1.5"></i> นำเข้า CSV
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
+                </label>
+                <button onclick="resetDataPrompt()" class="text-xs text-rose-600 hover:text-rose-800 underline px-2 py-1">
+                    รีเซ็ตข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs uppercase">
+                        <tr>
+                            <th class="px-4 py-3">ลำดับ</th>
+                            <th class="px-4 py-3">ชื่อ - นามสกุล</th>
+                            <th class="px-4 py-3">แผนก / วอร์ด</th>
+                            <th class="px-4 py-3 text-center">เดือน / ปี</th>
+                            <th class="px-4 py-3 text-center">เป้าหมาย (แผนก)</th>
+                            <th class="px-4 py-3 text-center">ยอดปัจจุบัน (แก้ไขได้)</th>
+                            <th class="px-4 py-3 text-center">สถานะ</th>
+                            <th class="px-4 py-3 text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100">
+                        <!-- Content rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const defaultUsers = [
+            { id: 1, name: "จารุนันท์ ฤทธิบันลือ", department: "รังสีวิทยา", target: 5, count: 2, month: "ตุลาคม", year: "2569" },
+            { id: 2, name: "ชุติกาญจน์ ภูละ", department: "รังสีวิทยา", target: 5, count: 3, month: "ตุลาคม", year: "2569" },
+            { id: 3, name: "เบญจมาภรณ์ เหล่าพรม", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 4, name: "ชนากานต์ สีสงปราบ", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 5, name: "อภิชา จาบสุวรรณ", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 6, name: "วศิน สัจจะมโน", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 7, name: "ภาพพินิจ งามพริ้ง", department: "รังสีวิทยา", target: 5, count: 1, month: "ตุลาคม", year: "2569" },
+            { id: 8, name: "ณัฐวัตร ศรีประเสริฐ", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 9, name: "ธันย์ชนก กระลาม", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 10, name: "อรณิชา สังข์คงเมือง", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 11, name: "ธนวันต์ ลาดบัวขาว", department: "รังสีวิทยา", target: 5, count: 1, month: "ตุลาคม", year: "2569" },
+            { id: 12, name: "พว.ดวงกมล สิทธิ", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 13, name: "พว.สุดารัตน์ ปานาง", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 14, name: "พว.ชนัญชิดา สันติปาตี", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 15, name: "ธีระศักดิ์ กันอินทร์", department: "รังสีวิทยา", target: 5, count: 3, month: "ตุลาคม", year: "2569" },
+            { id: 16, name: "ทศพร บุญขาว", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 17, name: "ชไมพร ทีพุทธา", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 18, name: "สุวนันท์ สุขเสนา", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 19, name: "อมรรัตน์ ผาลารักษ์", department: "รังสีวิทยา", target: 5, count: 10, month: "ตุลาคม", year: "2569" },
+            { id: 20, name: "วริยา กานุวงค์", department: "รังสีวิทยา", target: 5, count: 1, month: "ตุลาคม", year: "2569" },
+            { id: 21, name: "วาสนา รอมาลี", department: "รังสีวิทยา", target: 5, count: 2, month: "ตุลาคม", year: "2569" },
+            { id: 22, name: "สุพิชชา ยอดเมือง", department: "รังสีวิทยา", target: 5, count: 8, month: "ตุลาคม", year: "2569" },
+            { id: 23, name: "เบญญาภา สร้อยสด", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" },
+            { id: 24, name: "จิลมิกา หลี่", department: "รังสีวิทยา", target: 5, count: 0, month: "ตุลาคม", year: "2569" }
+        ];
+
+        let users = JSON.parse(localStorage.getItem('ior_users')) || defaultUsers;
+        let globalLastUpdate = localStorage.getItem('ior_last_update') || '-';
+        let rankingChartInstance = null;
+
+        function getCurrentTimestamp() {
+            const now = new Date();
+            const year = now.getFullYear() + 543;
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${mins}`;
+        }
+
+        function saveUsers() {
+            globalLastUpdate = getCurrentTimestamp();
+            localStorage.setItem('ior_users', JSON.stringify(users));
+            localStorage.setItem('ior_last_update', globalLastUpdate);
+            updateHeaderInfo();
+            renderTable();
+            updateRankingChart();
+        }
+
+        function updateHeaderInfo() {
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            document.getElementById('headerPeriod').innerText = `${m} ${y}`;
+            document.getElementById('headerLastUpdate').innerText = globalLastUpdate;
+        }
+
+        function onFilterChange() {
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            users.forEach(u => {
+                u.month = m;
+                u.year = y;
+            });
+            updateHeaderInfo();
+            renderTable();
+            updateRankingChart();
+        }
+
+        function updateCount(id, delta) {
+            const user = users.find(u => u.id === id);
+            if (user) {
+                user.count = Math.max(0, user.count + delta);
+                saveUsers();
+            }
+        }
+
+        function setDirectCount(id, val) {
+            const user = users.find(u => u.id === id);
+            if (user) {
+                const parsed = parseInt(val, 10);
+                user.count = isNaN(parsed) ? 0 : Math.max(0, parsed);
+                saveUsers();
+            }
+        }
+
+        function deleteUser(id) {
+            if (confirm("คุณต้องการลบรายชื่อนี้ใช่หรือไม่?")) {
+                users = users.filter(u => u.id !== id);
+                saveUsers();
+            }
+        }
+
+        function addNewUserPrompt() {
+            const name = prompt("กรอกชื่อ - นามสกุล บุคลากรใหม่:");
+            if (!name) return;
+            const dept = prompt("กรอกแผนก / วอร์ด:", "รังสีวิทยา") || "รังสีวิทยา";
+            const target = parseInt(prompt("เป้าหมาย IOR ต่อเดือน (แผนก):", "5"), 10) || 5;
+
+            const newUser = {
+                id: Date.now(),
+                name: name.trim(),
+                department: dept.trim(),
+                target: target,
+                count: 0,
+                month: document.getElementById('filterMonth').value,
+                year: document.getElementById('filterYear').value
+            };
+
+            users.push(newUser);
+            saveUsers();
+        }
+
+        function resetDataPrompt() {
+            if (confirm("คุณต้องการรีเซ็ตกลับเป็นข้อมูลเริ่มต้นใช่หรือไม่?")) {
+                users = defaultUsers;
+                globalLastUpdate = '-';
+                localStorage.removeItem('ior_last_update');
+                saveUsers();
+            }
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filterM = document.getElementById('filterMonth').value;
+            const filterY = document.getElementById('filterYear').value;
+
+            const filtered = users.filter(u => u.name.toLowerCase().includes(search) || u.department.toLowerCase().includes(search));
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            let totalCount = 0;
+            let passedCount = 0;
+
+            filtered.forEach((u, index) => {
+                totalCount += u.count;
+                const isPassed = u.count >= u.target;
+                if (isPassed) passedCount++;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-slate-400 text-xs">${index + 1}</td>
+                    <td class="px-4 py-3 font-semibold text-slate-800">${u.name}</td>
+                    <td class="px-4 py-3 text-slate-500">${u.department}</td>
+                    <td class="px-4 py-3 text-center text-xs text-slate-600 bg-slate-50/50">${u.month || filterM} ${u.year || filterY}</td>
+                    <td class="px-4 py-3 text-center font-medium text-slate-600">${u.target}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="inline-flex items-center space-x-1 border border-slate-300 rounded-lg p-1 bg-white shadow-sm">
+                            <button onclick="updateCount(${u.id}, -1)" class="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-bold text-xs">-</button>
+                            <input type="number" value="${u.count}" min="0" onchange="setDirectCount(${u.id}, this.value)" class="w-12 text-center text-sm font-bold text-teal-700 outline-none">
+                            <button onclick="updateCount(${u.id}, 1)" class="w-6 h-6 flex items-center justify-center bg-teal-600 hover:bg-teal-700 rounded text-white font-bold text-xs">+</button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        ${isPassed 
+                            ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check mr-1"></i> ผ่านเกณฑ์แผนก</span>`
+                            : (u.count >= 2 
+                                ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800"><i class="fa-solid fa-check-double mr-1"></i> ผ่านเกณฑ์ รพ.</span>`
+                                : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"><i class="fa-solid fa-clock mr-1"></i> ขาดอีก ${u.target - u.count}</span>`
+                              )
+                        }
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="deleteUser(${u.id})" class="text-slate-400 hover:text-rose-600 transition p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('statTotalCount').innerText = totalCount;
+            document.getElementById('statTotalStaff').innerText = filtered.length;
+            document.getElementById('statPassedStaff').innerText = passedCount;
+            const rate = filtered.length > 0 ? ((passedCount / filtered.length) * 100).toFixed(1) : 0;
+            document.getElementById('statPassRate').innerText = `${rate}%`;
+        }
+
+        function updateRankingChart() {
+            const sortedUsers = [...users].sort((a, b) => b.count - a.count);
+
+            const labels = sortedUsers.map(u => u.name);
+            const counts = sortedUsers.map(u => u.count);
+
+            const dynamicHeight = Math.max(400, sortedUsers.length * 28);
+            document.getElementById('chartContainer').style.height = `${dynamicHeight}px`;
+
+            const ctx = document.getElementById('rankingChart').getContext('2d');
+            if (rankingChartInstance) rankingChartInstance.destroy();
+
+            rankingChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวน IOR',
+                        data: counts,
+                        backgroundColor: counts.map(c => c >= 5 ? '#10b981' : (c >= 2 ? '#0284c7' : '#f59e0b')),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` รายงานแล้ว: ${context.raw} รายการ`;
+                                }
+                            }
+                        },
+                        // เส้นเป้าหมาย (Goal Lines)
+                        annotation: {
+                            annotations: {
+                                hospitalGoal: {
+                                    type: 'line',
+                                    xMin: 2,
+                                    xMax: 2,
+                                    borderColor: '#0284c7',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        display: true,
+                                        content: 'เป้าหมาย รพ. (2)',
+                                        position: 'start',
+                                        backgroundColor: '#0284c7',
+                                        color: '#fff',
+                                        font: { size: 10, weight: 'bold' }
+                                    }
+                                },
+                                deptGoal: {
+                                    type: 'line',
+                                    xMin: 5,
+                                    xMax: 5,
+                                    borderColor: '#ef4444',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        display: true,
+                                        content: 'เป้าหมาย แผนก (5)',
+                                        position: 'start',
+                                        backgroundColor: '#ef4444',
+                                        color: '#fff',
+                                        font: { size: 10, weight: 'bold' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: { 
+                        x: { beginAtZero: true, ticks: { precision: 0 }, max: Math.max(6, Math.max(...counts) + 1) },
+                        y: { ticks: { font: { size: 12, weight: '500' } } }
+                    }
+                }
+            });
+        }
+
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split("\n");
+                let importedCount = 0;
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const cols = line.split(",").map(c => c.replace(/"/g, '').trim());
+
+                    if (cols.length >= 2 && cols[0]) {
+                        users.push({
+                            id: Date.now() + i,
+                            name: cols[0],
+                            department: cols[1] || "รังสีวิทยา",
+                            target: parseInt(cols[2]) || 5,
+                            count: parseInt(cols[3]) || 0,
+                            month: document.getElementById('filterMonth').value,
+                            year: document.getElementById('filterYear').value
+                        });
+                        importedCount++;
+                    }
+                }
+
+                saveUsers();
+                alert(`นำเข้าข้อมูลสำเร็จ ${importedCount} รายการ!`);
+            };
+            reader.readAsText(file, "UTF-8");
+        }
+
+        function exportToCSV() {
+            let csv = "\uFEFFลำดับ,ชื่อ-นามสกุล,แผนก,เดือน,ปี,เป้าหมายแผนก,ยอดปัจจุบัน,สถานะ\n";
+            users.forEach((u, index) => {
+                const status = u.count >= u.target ? "ผ่านเกณฑ์แผนก" : (u.count >= 2 ? "ผ่านเกณฑ์ รพ." : "ยังไม่ถึงเป้าหมาย");
+                csv += `"${index + 1}","${u.name}","${u.department}","${u.month}","${u.year}","${u.target}","${u.count}","${status}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `รายงาน_IOR_Ranking_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        // Initialize App
+        updateHeaderInfo();
+        renderTable();
+        updateRankingChart();
+    </script>
+</body>
+</html>
